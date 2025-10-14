@@ -1,38 +1,47 @@
-import logo from './logo.svg';
-import './App.css';
-import firebase, { initializeApp } from 'firebase/app'
-import 'firebase/firestore'
-import 'firebase/auth'
+import { auth, provider, firestore } from './firebase'; // ✅ use modular setup
+import { signInWithPopup, signOut } from 'firebase/auth';
 
-import {useAuthState} from 'react-firebase-hooks/auth'
-import {useCollectionData} from 'react-fireabse-hooks/firestore'
-
-firebase.initializeApp({
-  piKey: "AIzaSyBlvmfyEu1q-4d3Dj8MjupLU_Gj5fNDPis",
-  authDomain: "superchat-eec12.firebaseapp.com",
-  projectId: "superchat-eec12",
-  storageBucket: "superchat-eec12.firebasestorage.app",
-  messagingSenderId: "663980396987",
-  appId: "1:663980396987:web:52e22137554cf7ba2e749e",
-  measurementId: "G-2TS0Z971YT"
-
-})
-
-const auth=firebase.auth()
-const firestore=firebase.firestore()
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { useCollectionData } from 'react-firebase-hooks/firestore'
 
 
 function App() {
+  const [user] = useAuthState(auth);
 
-  const user=useAuthState(auth)
-  
   return (
     <div className="App">
       <header className="App-header">
-       
+        <h1>SuperChat</h1>
+        <SignOut />
       </header>
+      <section className="App-main">
+        {user ? <ChatRoom /> : <SignIn />}
+      </section>
     </div>
   );
+}
+
+function SignIn() {
+  const signInWithGoogle = async () => {
+    try {
+      const result = await signInWithPopup(auth, provider);
+      console.log('Signed in:', result.user);
+    } catch (error) {
+      console.error('Error during sign-in:', error);
+    }
+  };
+
+  return <button onClick={signInWithGoogle}>Sign in with Google</button>;
+}
+
+function SignOut() {
+  return auth.currentUser && (
+    <button onClick={() => signOut(auth)}>Sign Out</button>
+  );
+}
+
+function ChatRoom() {
+  return <div>Welcome to the chat room!</div>;
 }
 
 export default App;
