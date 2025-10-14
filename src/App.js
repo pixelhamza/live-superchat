@@ -1,6 +1,9 @@
-import { auth, provider, firestore } from './firebase'; // ✅ use modular setup
+import { auth, provider, firestore } from './firebase';
 import { signInWithPopup, signOut } from 'firebase/auth';
-
+import { orderBy, query,limit,collection } from 'firebase/firestore';
+import React, { useState, useRef } from 'react';
+import { addDoc, serverTimestamp } from 'firebase/firestore';
+import './App.css';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useCollectionData } from 'react-firebase-hooks/firestore'
 
@@ -41,7 +44,69 @@ function SignOut() {
 }
 
 function ChatRoom() {
-  return <div>Welcome to the chat room!</div>;
+  const messagesRef = collection(firestore, 'messages');
+  const messagesQuery = query(messagesRef, orderBy('createdAt'), limit(30));
+
+  const [messages] = useCollectionData(messagesQuery, { idField: 'id' });
+
+  const [formValue, setFormValue] = useState('');
+  const dummy = useRef();
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
+
+    if (!formValue.trim()) return; // avoid sending empty messages
+
+    const { uid, photoURL } = auth.currentUser;
+
+    await addDoc(messagesRef, {
+      text: formValue,
+      createdAt: serverTimestamp(),
+      uid,
+      photoURL: photoURL || null,
+    });
+
+    setFormValue('');
+    dummy.current.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleMessageTap = (msg) => {
+    alert(`Message tapped: "${msg.text}" from user ${msg.uid}`);
+  };
+
+  return (
+    <>
+      <div className="chat-messages">
+        {messages?.map(msg => (
+          <ChatMessage key={msg.id} message={msg} onTap={() => handleMessageTap(msg)} />
+        ))}
+        <div ref={dummy}></div>
+      </div>
+
+      <form onSubmit={sendMessage} style={{ marginTop: '10px' }}>
+        <input
+          value={formValue}
+          onChange={(e) => setFormValue(e.target.value)}
+          placeholder="Type your message"
+          style={{ width: '80%', padding: '10px' }}
+        />
+        <button type="submit" disabled={!formValue.trim()} style={{ padding: '10px 20px' }}>
+          Send
+        </button>
+      </form>
+    </>
+  );
+}
+
+function ChatMessage({ message, onTap }) {
+  const { text, uid } = message;
+  const messageClass = uid === auth.currentUser?.uid ? 'sent' : 'received';
+
+  return (
+    <p className={messageClass} onClick={onTap} style={{ cursor: 'pointer' }}>
+      {text}
+    </p>
+  );
 }
 
 export default App;
